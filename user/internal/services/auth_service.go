@@ -15,6 +15,8 @@ type AuthService struct {
 	JWTSecret string
 }
 
+var ErrUserAlreadyExist = errors.New("user already exists")
+
 func NewAuthService(repo *repository.UserRepository, secret string) *AuthService {
 	return &AuthService{
 		Repo:      repo,
@@ -25,7 +27,7 @@ func NewAuthService(repo *repository.UserRepository, secret string) *AuthService
 func (s *AuthService) Register(user *models.User) error {
 	existingUser, _ := s.Repo.FindByEmail(user.Email)
 	if existingUser != nil {
-		return errors.New("email already registered")
+		return ErrUserAlreadyExist
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
