@@ -55,6 +55,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	logger.Logger.Info("User registered successfully", slog.String("email", user.Email))
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "User registered successfully",
 	})
@@ -76,6 +77,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Logger.Info("User logged in successfully", slog.String("email", user.Email))
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": token,
