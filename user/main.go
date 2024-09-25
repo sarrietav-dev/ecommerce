@@ -3,25 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/crypto/bcrypt"
 )
-
-var ErrUserAlreadyExist = errors.New("this email already exists")
-
-type User struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	ID       uint   `json:"id"`
-}
 
 func main() {
 	db, err := sql.Open("sqlite3", "./users.db")
@@ -49,28 +35,24 @@ func main() {
 			return
 		}
 
-		var existingId string
-		err := db.QueryRow("SELECT id FROM users WHERE email = :email", sql.Named("email", user.Email)).Scan(&existingId)
-		if err != nil && err != sql.ErrNoRows {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if existingId != "" {
-			http.Error(w, ErrUserAlreadyExist.Error(), http.StatusBadRequest)
+		_, err := getUserByEmail(db, user.Email)
+		if err == nil {
+			http.Error(w, formatErrorToJson(ErrUserAlreadyExist), http.StatusConflict)
 			return
 		}
 
-		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-
-		insertStmt, err := db.Prepare(`INSERT INTO users (name, email, password) VALUES (:name, :email, :password);`)
+		encryptedPassword, err := encryptPassword(user.Password)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, formatErrorToJson(err), http.StatusInternalServerError)
 			return
 		}
 
-		_, err = insertStmt.Exec(sql.Named("name", user.Name), sql.Named("email", user.Email), sql.Named("password", encryptedPassword))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err := createUser(db, User{
+			Name:     user.Name,
+			Email:    user.Email,
+			Password: encryptedPassword,
+		}); err != nil {
+			http.Error(w, formatErrorToJson(err), http.StatusInternalServerError)
 			return
 		}
 
@@ -84,49 +66,34 @@ func main() {
 		var user User
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, formatErrorToJson(err), http.StatusBadRequest)
 			return
 		}
 
-		var existingUser User
-		err := db.QueryRow("SELECT id, email, password FROM users WHERE email = ?", user.Email).Scan(&existingUser.ID, &existingUser.Email, &existingUser.Password)
+		existingUser, err := getUserByEmail(db, user.Email)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusNotFound)
-				return
-			}
+			http.Error(w, formatErrorToJson(ErrUserNotFound), http.StatusNotFound)
+		}
 
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err := decryptPassword(existingUser.Password, user.Password); err != nil {
+			http.Error(w, formatErrorToJson(ErrInvalidPassword), http.StatusUnauthorized)
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(user.Password)); err != nil {
-			http.Error(w, "Invalid password", http.StatusUnauthorized)
-			return
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-			Subject:   user.Email,
-			Issuer:    "auth.service",
-			Audience:  jwt.ClaimStrings{"user"},
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-			ID:        strconv.FormatUint(uint64(existingUser.ID), 10),
-		})
-
-		tokenString, err := token.SignedString([]byte("secret"))
+		token, err := generateToken(existingUser)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, formatErrorToJson(err), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"token": tokenString,
+			"token": token,
 		})
 	})
 
+	log.Println("Server running on port 8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
