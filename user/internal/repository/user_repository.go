@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/mattn/go-sqlite3"
 	"github.com/sarrietav-dev/ecommerce/user/internal/models"
 )
 
@@ -36,9 +35,6 @@ func (repo *UserRepository) FindByEmail(email string) (*models.User, error) {
 func (repo *UserRepository) Create(user *models.User) error {
 	_, err := repo.DB.Exec("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", user.Name, user.Email, user.Password)
 	if err != nil {
-		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.Code == sqlite3.ErrConstraint {
-			return ErrUserAlreadyExists
-		}
 		return err
 	}
 

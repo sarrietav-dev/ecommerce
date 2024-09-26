@@ -1,6 +1,10 @@
 package config
 
-import "os"
+import (
+	"os"
+
+	"github.com/go-sql-driver/mysql"
+)
 
 type Config struct {
 	Database  string
@@ -9,8 +13,16 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
+	dbCfg := mysql.Config{
+		Net:    "tcp",
+		User:   getEnv("DB_USER", "root"),
+		Passwd: getEnv("DB_PASS", "password"),
+		Addr:   getEnv("DB_ADDR", "localhost:3306"),
+		DBName: getEnv("DB_NAME", "ecommerce"),
+	}
+
 	cfg := &Config{
-		Database:  getEnv("DATABASE", "./users.db"),
+		Database:  dbCfg.FormatDSN(),
 		JWTSecret: getEnv("JWT_SECRET", "secret"),
 		Port:      getEnv("PORT", "8080"),
 	}
