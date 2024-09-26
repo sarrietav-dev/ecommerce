@@ -1,0 +1,36 @@
+services:
+  server:
+    build:
+      context: ./user
+      target: final
+    ports:
+      - 8080:8080
+    depends_on:
+      - mysql
+    environment:
+      ENV: "PROD"
+      DB_USER: "user"
+      DB_PASS: "password"
+      DB_ADDR: "mysql:3306"
+      DB_NAME: "ecommerce"
+    volumes:
+      - ./user/users.db:/bin/users.db
+
+  mysql:
+    image: mysql
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: "ecommerce"
+      MYSQL_USER: "user"
+      MYSQL_PASSOWRD: "password"
+      MYSQL_ROOT_PASSWORD: "password"
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    volumes:
+      - my-db:/var/lib/mysql
+
+volumes:
+  my-db:
+    driver: local
