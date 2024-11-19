@@ -30,7 +30,20 @@ services:
       - "3306"
     volumes:
       - my-db:/var/lib/mysql
+  postgres:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "catalog"
+    ports:
+      - "5432:5432"
+    volumes:
+      - catalog-db:/var/lib/postgresql/data
 
 volumes:
   my-db:
+    driver: local
+  catalog-db:
     driver: local
