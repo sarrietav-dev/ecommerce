@@ -37,17 +37,17 @@ func writeErrorResponse(w http.ResponseWriter, err error, statusCode int) {
 }
 
 func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var product models.Product
+	var requestProduct models.Product
 
-	if err := jsonapi.UnmarshalPayload(r.Body, &product); err != nil {
+	if err := jsonapi.UnmarshalPayload(r.Body, &requestProduct); err != nil {
 		logger.Logger.Warn("Invalid request payload", slog.String("error", err.Error()))
 		writeErrorResponse(w, err, http.StatusBadRequest)
 		return
 	}
 
-	newProduct, err := ph.productService.CreateProduct(
-		models.NewProduct(product.Title, product.Description, product.Image, product.Price),
-	)
+	product := models.NewProduct(requestProduct.Title, requestProduct.Description, requestProduct.Image, requestProduct.Price)
+	product.Categories = requestProduct.Categories
+	newProduct, err := ph.productService.CreateProduct(product)
 	if err != nil {
 		logger.Logger.Error("Failed to create product", slog.String("error", err.Error()))
 		writeErrorResponse(w, err, http.StatusInternalServerError)

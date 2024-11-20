@@ -14,6 +14,16 @@ Accept: application/vnd.api+json
       "description": "Description of product 1",
       "price": 100,
       "image": "jsonds"
+    },
+    "relationships": {
+      "categories": {
+        "data": [
+          {
+            "type": "categories",
+            "id": "da421f04-edcf-4cbb-8f7e-99779fdfbcbe"
+          }
+        ]
+      }
     }
   }
 }

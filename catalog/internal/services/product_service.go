@@ -6,7 +6,8 @@ import (
 )
 
 type ProductService struct {
-	productRepo *repository.ProductRepository
+	productRepo  *repository.ProductRepository
+	categoryRepo *repository.CategoryRepository
 }
 
 func NewProductService(productRepo *repository.ProductRepository) *ProductService {
@@ -22,13 +23,30 @@ func (s *ProductService) GetProducts(limit uint, offset uint) ([]*models.Product
 }
 
 func (s *ProductService) CreateProduct(product *models.Product) (*models.Product, error) {
-	return s.productRepo.CreateProduct(product)
+	product, err := s.productRepo.CreateProduct(product)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(product.Categories) > 0 {
+		categoryIds := make([]string, 0, len(product.Categories))
+		for _, category := range product.Categories {
+			categoryIds = append(categoryIds, category.Id)
+		}
+
+		err = s.categoryRepo.LinkProductWithCategories(product.Id, categoryIds)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return product, nil
 }
 
 func (s *ProductService) UpdateProduct() {
 	// Update a product
 }
-
 func (s *ProductService) DeleteProduct() {
 	// Delete a product
 }
