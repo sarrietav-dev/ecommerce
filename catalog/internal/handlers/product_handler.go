@@ -36,13 +36,6 @@ func writeErrorResponse(w http.ResponseWriter, err error, statusCode int) {
 	}})
 }
 
-type ProductInput struct {
-	Title       string  `jsonapi:"attr,title"`
-	Description string  `jsonapi:"attr,description"`
-	Image       string  `jsonapi:"attr,image"`
-	Price       float64 `jsonapi:"attr,price"`
-}
-
 func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
