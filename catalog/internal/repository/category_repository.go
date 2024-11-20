@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/models"
 )
 
@@ -16,8 +17,11 @@ func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 
 func (r *CategoryRepository) GetCategoryByID(id string) (*models.Category, error) {
 	var category models.Category
-
-	err := r.DB.QueryRow("SELECT id, name, description FROM categories WHERE id = ?", id).Scan(&category.Id, &category.Name, &category.Description)
+	q, args, err := sq.Select("id", "name", "description").From("categories").Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return nil, err
+	}
+	err = r.DB.QueryRow(q, args...).Scan(&category.Id, &category.Name, &category.Description)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +30,11 @@ func (r *CategoryRepository) GetCategoryByID(id string) (*models.Category, error
 }
 
 func (r *CategoryRepository) GetCategories() ([]*models.Category, error) {
-	rows, err := r.DB.Query("SELECT id, name, description FROM categories")
+	q, _, err := sq.Select("id", "name", "description").From("categories").ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.DB.Query(q)
 	if err != nil {
 		return nil, err
 	}
@@ -45,4 +53,38 @@ func (r *CategoryRepository) GetCategories() ([]*models.Category, error) {
 	}
 
 	return categories, nil
+}
+
+func (r *CategoryRepository) CreateCategory(category *models.Category) (*models.Category, error) {
+	q, args, err := sq.Insert("categories").Columns("id", "name", "description").Values(category.Id, category.Name, category.Description).PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return nil, err
+	}
+	_, err = r.DB.Exec(q, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return category, nil
+}
+
+func (r *CategoryRepository) LinkProductWithCategories(productID string, categoryIds []string) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, categoryID := range categoryIds {
+		q, args, err := sq.Insert("product_categories").Columns("product_id", "category_id").Values(productID, categoryID).PlaceholderFormat(sq.Dollar).ToSql()
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(q, args...)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
