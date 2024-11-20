@@ -67,17 +67,17 @@ func (r *ProductRepository) GetProducts(limit uint, offset uint) ([]*models.Prod
 	return products, nil
 }
 
-func (r *ProductRepository) CreateProduct(product *models.Product) error {
+func (r *ProductRepository) CreateProduct(product *models.Product) (*models.Product, error) {
 	q, args, err := sq.Insert("products").Columns("id", "title", "description", "image", "price").
 		Values(product.Id, product.Title, product.Description, product.Image, product.Price).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_, err = r.DB.Exec(q, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return product, nil
 }

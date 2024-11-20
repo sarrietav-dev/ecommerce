@@ -4,6 +4,7 @@ go 1.23.2
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/google/jsonapi v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.1
 )

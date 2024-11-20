@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/google/jsonapi"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/logger"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/models"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/repository"
@@ -26,24 +27,32 @@ func NewProductHandler(db *sql.DB) *ProductHandler {
 }
 
 func writeErrorResponse(w http.ResponseWriter, err error, statusCode int) {
-	response := map[string]interface{}{
-		"message": err.Error(),
-		"status":  statusCode,
-	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
+	jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+		Title:  "Error",
+		Detail: err.Error(),
+		Status: fmt.Sprint(statusCode),
+	}})
+}
+
+type ProductInput struct {
+	Title       string  `jsonapi:"attr,title"`
+	Description string  `jsonapi:"attr,description"`
+	Image       string  `jsonapi:"attr,image"`
+	Price       float64 `jsonapi:"attr,price"`
 }
 
 func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
-	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+
+	if err := jsonapi.UnmarshalPayload(r.Body, &product); err != nil {
 		logger.Logger.Warn("Invalid request payload", slog.String("error", err.Error()))
 		writeErrorResponse(w, err, http.StatusBadRequest)
 		return
 	}
 
-	err := ph.productService.CreateProduct(
+	newProduct, err := ph.productService.CreateProduct(
 		models.NewProduct(product.Title, product.Description, product.Image, product.Price),
 	)
 	if err != nil {
@@ -52,13 +61,10 @@ func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Logger.Info("Product created successfully", slog.String("product_id", product.Id))
-	w.Header().Set("Content-Type", "application/json")
+	logger.Logger.Info("Product created successfully", slog.String("product_id", newProduct.Id))
+	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Product created successfully",
-		"status":  http.StatusCreated,
-	})
+	jsonapi.MarshalPayload(w, newProduct)
 }
 
 func (ph *ProductHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -69,9 +75,9 @@ func (ph *ProductHandler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Logger.Info("Products retrieved successfully")
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(products)
+	jsonapi.MarshalPayload(w, products)
 }
 
 func (ph *ProductHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +94,7 @@ func (ph *ProductHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Logger.Info("Product retrieved successfully", slog.String("product_id", product.Id))
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(product)
+	jsonapi.MarshalPayload(w, product)
 }

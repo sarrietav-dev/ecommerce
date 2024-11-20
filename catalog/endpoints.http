@@ -3,13 +3,19 @@ GET http://localhost:8080/products
 ###
 
 POST http://localhost:8080/products
-Content-Type: application/json
+Content-Type: application/vnd.api+json
+Accept: application/vnd.api+json
 
 {
-    "name": "Product 1",
-    "price": 100,
-    "description": "Description of product 1",
-    "image": "product1.jpg"
+  "data": {
+    "type": "products",
+    "attributes": {
+      "title": "Product 1",
+      "description": "Description of product 1",
+      "price": 100,
+      "image": "jsonds"
+    }
+  }
 }
 
 ###

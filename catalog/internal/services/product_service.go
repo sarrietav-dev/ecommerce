@@ -21,7 +21,7 @@ func (s *ProductService) GetProducts(limit uint, offset uint) ([]*models.Product
 	return s.productRepo.GetProducts(limit, offset)
 }
 
-func (s *ProductService) CreateProduct(product *models.Product) error {
+func (s *ProductService) CreateProduct(product *models.Product) (*models.Product, error) {
 	return s.productRepo.CreateProduct(product)
 }
 
