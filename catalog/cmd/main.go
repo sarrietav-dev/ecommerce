@@ -26,7 +26,8 @@ func main() {
 	productHandler := handlers.NewProductHandler(db)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /products", productHandler.Get)
+	mux.HandleFunc("GET /products/{id}", productHandler.Show)
+	mux.HandleFunc("GET /products", productHandler.Index)
 	mux.HandleFunc("POST /products", productHandler.Create)
 
 	middlewareMux := middleware.RecoveryMiddleware(middleware.LoggingMiddleware(mux))

@@ -18,8 +18,15 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 
 func (r *ProductRepository) GetProductByID(id string) (*models.Product, error) {
 	var product models.Product
-
-	err := r.DB.QueryRow("SELECT id, title, description, image, price, created_at FROM products WHERE id = ?", id).Scan(&product.Id, &product.Title, &product.Description, &product.Image, &product.Price, &product.CreatedAt)
+	q, args, err := sq.Select("id", "title", "description", "image", "price", "created_at").
+		From("products").
+		Where(sq.Eq{"id": id}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	err = r.DB.QueryRow(q, args...).Scan(&product.Id, &product.Title, &product.Description, &product.Image, &product.Price, &product.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -31,7 +38,11 @@ func (r *ProductRepository) GetProductByID(id string) (*models.Product, error) {
 }
 
 func (r *ProductRepository) GetProducts(limit uint, offset uint) ([]*models.Product, error) {
-	q, args, err := sq.Select("id", "title", "description", "image", "price", "created_at").From("products").Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
+	q, args, err := sq.Select("id", "title", "description", "image", "price", "created_at").
+		From("products").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		ToSql()
 	if err != nil {
 		return nil, err
 	}

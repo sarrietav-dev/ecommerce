@@ -61,7 +61,7 @@ func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (ph *ProductHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (ph *ProductHandler) Index(w http.ResponseWriter, r *http.Request) {
 	products, err := ph.productService.GetProducts(10, 0)
 	if err != nil {
 		logger.Logger.Error("Failed to get products", slog.String("error", err.Error()))
@@ -72,4 +72,23 @@ func (ph *ProductHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(products)
+}
+
+func (ph *ProductHandler) Show(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	product, err := ph.productService.GetProductByID(id)
+	if err != nil {
+		logger.Logger.Error("Failed to get product", slog.String("error", err.Error()))
+		writeErrorResponse(w, err, http.StatusInternalServerError)
+		return
+	}
+	if product == nil {
+		logger.Logger.Warn("Product not found", slog.String("product_id", id))
+		writeErrorResponse(w, err, http.StatusNotFound)
+		return
+	}
+	logger.Logger.Info("Product retrieved successfully", slog.String("product_id", product.Id))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }
