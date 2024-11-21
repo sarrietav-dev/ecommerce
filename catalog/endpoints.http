@@ -20,7 +20,7 @@ Accept: application/vnd.api+json
         "data": [
           {
             "type": "categories",
-            "id": "da421f04-edcf-4cbb-8f7e-99779fdfbcbe"
+            "id": "cac6ecbd-fad0-4e1b-a267-466dc897f973"
           }
         ]
       }
@@ -31,3 +31,27 @@ Accept: application/vnd.api+json
 ###
 
 GET http://localhost:8080/products/da421f04-edcf-4cbb-8f7e-99779fdfbcbe
+
+###
+
+GET http://localhost:8080/categories
+
+###
+
+POST http://localhost:8080/categories
+Content-Type: application/vnd.api+json
+Accept: application/vnd.api+json
+
+{
+  "data": {
+    "type": "categories",
+    "attributes": {
+      "name": "Category 1",
+      "description": "Description of category 1"
+    }
+  }
+}
+
+###
+
+GET http://localhost:8080/categories/da421f04-edcf-4cbb-8f7e-99779fdfbcbe

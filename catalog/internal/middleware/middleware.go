@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/google/jsonapi"
+	"github.com/sarrietav-dev/ecommerce/catalog/internal"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/logger"
 )
 
@@ -35,13 +36,9 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				logger.Logger.Error("Unhandled error", slog.Any("error", err))
-				response := map[string]interface{}{
-					"message": "Internal Server Error",
-					"status":  http.StatusInternalServerError,
-				}
-				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Content-Type", jsonapi.MediaType)
 				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(response)
+				internal.WriteErrorResponse(w, err.(error), http.StatusInternalServerError)
 			}
 		}()
 		next.ServeHTTP(w, r)

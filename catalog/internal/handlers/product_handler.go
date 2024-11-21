@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/google/jsonapi"
+	"github.com/sarrietav-dev/ecommerce/catalog/internal"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/logger"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/models"
 	"github.com/sarrietav-dev/ecommerce/catalog/internal/repository"
@@ -19,21 +19,12 @@ type ProductHandler struct {
 
 func NewProductHandler(db *sql.DB) *ProductHandler {
 	productRepository := repository.NewProductRepository(db)
-	productService := services.NewProductService(productRepository)
+	categoryRepository := repository.NewCategoryRepository(db)
+	productService := services.NewProductService(productRepository, categoryRepository)
 
 	return &ProductHandler{
 		productService: productService,
 	}
-}
-
-func writeErrorResponse(w http.ResponseWriter, err error, statusCode int) {
-	w.Header().Set("Content-Type", jsonapi.MediaType)
-	w.WriteHeader(statusCode)
-	jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
-		Title:  "Error",
-		Detail: err.Error(),
-		Status: fmt.Sprint(statusCode),
-	}})
 }
 
 func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +32,7 @@ func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &requestProduct); err != nil {
 		logger.Logger.Warn("Invalid request payload", slog.String("error", err.Error()))
-		writeErrorResponse(w, err, http.StatusBadRequest)
+		internal.WriteErrorResponse(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -50,7 +41,7 @@ func (ph *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	newProduct, err := ph.productService.CreateProduct(product)
 	if err != nil {
 		logger.Logger.Error("Failed to create product", slog.String("error", err.Error()))
-		writeErrorResponse(w, err, http.StatusInternalServerError)
+		internal.WriteErrorResponse(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -64,7 +55,7 @@ func (ph *ProductHandler) Index(w http.ResponseWriter, r *http.Request) {
 	products, err := ph.productService.GetProducts(10, 0)
 	if err != nil {
 		logger.Logger.Error("Failed to get products", slog.String("error", err.Error()))
-		writeErrorResponse(w, err, http.StatusInternalServerError)
+		internal.WriteErrorResponse(w, err, http.StatusInternalServerError)
 		return
 	}
 	logger.Logger.Info("Products retrieved successfully")
@@ -78,12 +69,12 @@ func (ph *ProductHandler) Show(w http.ResponseWriter, r *http.Request) {
 	product, err := ph.productService.GetProductByID(id)
 	if err != nil {
 		logger.Logger.Error("Failed to get product", slog.String("error", err.Error()))
-		writeErrorResponse(w, err, http.StatusInternalServerError)
+		internal.WriteErrorResponse(w, err, http.StatusInternalServerError)
 		return
 	}
 	if product == nil {
 		logger.Logger.Warn("Product not found", slog.String("product_id", id))
-		writeErrorResponse(w, err, http.StatusNotFound)
+		internal.WriteErrorResponse(w, err, http.StatusNotFound)
 		return
 	}
 	logger.Logger.Info("Product retrieved successfully", slog.String("product_id", product.Id))

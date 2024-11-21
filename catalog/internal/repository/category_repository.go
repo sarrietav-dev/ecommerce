@@ -79,7 +79,7 @@ func (r *CategoryRepository) LinkProductWithCategories(productID string, categor
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec(q, args...)
+		_, err = r.DB.Exec(q, args...)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -87,4 +87,35 @@ func (r *CategoryRepository) LinkProductWithCategories(productID string, categor
 	}
 
 	return tx.Commit()
+}
+
+func (r *CategoryRepository) GetCategoriesByProductID(productID string) ([]*models.Category, error) {
+	q, args, err := sq.Select("c.id", "c.name", "c.description").
+		From("categories c").
+		Join("product_categories pc ON c.id = pc.category_id").
+		Where(sq.Eq{"pc.product_id": productID}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.DB.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var categories []*models.Category
+
+	for rows.Next() {
+		var category models.Category
+		err := rows.Scan(&category.Id, &category.Description, &category.Name)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
 }

@@ -31,7 +31,7 @@ func Connect(dns string) (*sql.DB, error) {
 	}
 
 	_, err = db.Exec(`
-    CREATE TABLE IF NOT EXISTS category (
+    CREATE TABLE IF NOT EXISTS categories (
       id UUID PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       description TEXT
@@ -39,6 +39,20 @@ func Connect(dns string) (*sql.DB, error) {
   `)
 	if err != nil {
 		logger.Logger.Error("Error creating category table")
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS product_categories (
+		product_id UUID,
+		category_id UUID,
+		PRIMARY KEY (product_id, category_id),
+		FOREIGN KEY (product_id) REFERENCES products(id),
+		FOREIGN KEY (category_id) REFERENCES categories(id)
+	)
+	`)
+	if err != nil {
+		logger.Logger.Error("Error creating product_categories table")
 		return nil, err
 	}
 

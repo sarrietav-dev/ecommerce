@@ -21,6 +21,6 @@ func (s *CategoryService) GetCategories() ([]*models.Category, error) {
 	return s.categoryRepo.GetCategories()
 }
 
-func (s *CategoryService) CreateCategory() {
-	// Create a new category
+func (s *CategoryService) CreateCategory(category *models.Category) (*models.Category, error) {
+	return s.categoryRepo.CreateCategory(category)
 }

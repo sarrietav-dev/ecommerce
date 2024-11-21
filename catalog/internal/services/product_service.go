@@ -10,12 +10,19 @@ type ProductService struct {
 	categoryRepo *repository.CategoryRepository
 }
 
-func NewProductService(productRepo *repository.ProductRepository) *ProductService {
-	return &ProductService{productRepo: productRepo}
+func NewProductService(productRepo *repository.ProductRepository, categoryRepo *repository.CategoryRepository) *ProductService {
+	return &ProductService{productRepo: productRepo, categoryRepo: categoryRepo}
 }
 
 func (s *ProductService) GetProductByID(id string) (*models.Product, error) {
-	return s.productRepo.GetProductByID(id)
+	product, err := s.productRepo.GetProductByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	product.Categories, err = s.categoryRepo.GetCategoriesByProductID(product.Id)
+
+	return product, err
 }
 
 func (s *ProductService) GetProducts(limit uint, offset uint) ([]*models.Product, error) {
@@ -41,7 +48,9 @@ func (s *ProductService) CreateProduct(product *models.Product) (*models.Product
 		}
 	}
 
-	return product, nil
+	product.Categories, err = s.categoryRepo.GetCategoriesByProductID(product.Id)
+
+	return product, err
 }
 
 func (s *ProductService) UpdateProduct() {
